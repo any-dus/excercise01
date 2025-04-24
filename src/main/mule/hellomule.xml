@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="000b9380-2e33-49a4-ada7-504ecdb5429b" >
+		<http:listener-connection host="0.0.0.0" port="8089" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="1d6dd019-1cb4-47ee-9161-6ead15465b53">
+		<http:request-connection host="localhost" port="8089" />
+	</http:request-config>
+	<flow name="hellomule_rvs_simulation" doc:id="d2a1782a-6a38-467b-ba2c-2b96ec14470e" >
+		<http:listener doc:name="Listener" doc:id="8e60f632-57ab-4c6e-acd6-5b1bc84ee648" config-ref="HTTP_Listener_config" path="/getfile"/>
+		<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;  "materialId": "CAR-ELROQ-2025",&#10;  "name": "Skoda Elroq",&#10;  "category": "Electric SUV",&#10;  "manufacturer": "Skoda",&#10;  "year": 2025,&#10;  "price": 48000.00,&#10;  "stock": 9&#10;}]' doc:name="Set Payload" doc:id="db79290e-1304-4687-ae27-25e73383e7ba" />
+	</flow>
+	<flow name="hellomule_convertmany" doc:id="ca4bc76c-1725-49af-b509-6e8a5bc7e6a3" >
+		<http:listener doc:name="Listener" doc:id="2bf83e2f-6a30-4e8d-a533-a6462d6a67f2" config-ref="HTTP_Listener_config" path="/convertmany"/>
+		<logger level="INFO" doc:name="Logger" doc:id="a05d07e6-3f42-48b4-936c-75d83eff643e" message="#[payload]"/>
+		<ee:transform doc:name="Transform Message" doc:id="1823fb3a-8a9b-48c0-ae03-1522f5419a9d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/xml
+---
+{
+	IDoc: {
+		E1MARAM: payload map(item) -> {
+			MATNR: item.materialId,
+			MAKTX: item.name,
+			MTART: "CAR",
+			MATKL: item.category,
+			HERST: item.manufacturer,
+			BISMT: item.year,
+			NETPR: item.price,
+			BSTMG: item.stock
+		}
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="hellomule_convertone" doc:id="ffb9d819-3eee-447c-a0bc-94fd0e642094">
+		<http:listener doc:name="Listener" doc:id="72b9d189-5b26-4bec-843a-1e7d23571c50" config-ref="HTTP_Listener_config" path="/convert" />
+		<http:request method="GET" doc:name="Request" doc:id="61715c74-4040-4224-9db7-e16000d02c75" config-ref="HTTP_Request_configuration" path="/getfile"/>
+		<logger level="INFO" doc:name="Logger" doc:id="c5adac62-c126-4574-a428-d0b1f6c1f4fd" message="#[payload]" />
+		<ee:transform doc:name="Transform Message" doc:id="14739758-babe-4299-8674-8f58bd93b3d5">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/xml
+---
+{
+	IDoc: {
+		E1MARAM: {
+			MATNR: payload.materialId,
+			MAKTX: payload.name,
+			MTART: "CAR",
+			MATKL: payload.category,
+			HERST: payload.manufacturer,
+			BISMT: payload.year,
+			NETPR: payload.price,
+			BSTMG: payload.stock
+		}
+	}
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
